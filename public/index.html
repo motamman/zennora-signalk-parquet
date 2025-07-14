@@ -306,10 +306,11 @@
 
         <!-- Data Path Information -->
         <div class="section">
-            <h2>📁 Finding Your Data Paths</h2>
-            <p>Use this command to find your available Parquet data paths:</p>
-            <code>find ~/.signalk/data/vessels/self -name "*.parquet" -type f | head -10</code>
-            <p style="margin-top: 10px;">Then use the full file paths in your SQL queries below.</p>
+            <h2>📁 Available Data Paths</h2>
+            <p>Available SignalK data paths with Parquet files:</p>
+            <div id="availablePaths">
+                <div class="loading">Loading available paths...</div>
+            </div>
         </div>
 
         <!-- Query Section -->
@@ -325,18 +326,7 @@
             <div class="query-examples">
                 <h4>📝 Example Queries (click to use):</h4>
                 <ul id="queryExamples">
-                    <li onclick="setQuery(this.textContent)">
-                        <code>SELECT * FROM '/home/maurice/.signalk/data/vessels/self/environment/outside/rapidWind/windSpeed/*.parquet' ORDER BY received_timestamp DESC LIMIT 10</code>
-                    </li>
-                    <li onclick="setQuery(this.textContent)">
-                        <code>SELECT received_timestamp, value_latitude, value_longitude, source_label FROM '/home/maurice/.signalk/data/vessels/self/navigation/position/*.parquet' WHERE value_latitude IS NOT NULL ORDER BY received_timestamp DESC LIMIT 10</code>
-                    </li>
-                    <li onclick="setQuery(this.textContent)">
-                        <code>SELECT * FROM '/home/maurice/.signalk/data/vessels/self/navigation/position/*.parquet' WHERE source_label = 'mqtt-navBasic' ORDER BY received_timestamp DESC LIMIT 10</code>
-                    </li>
-                    <li onclick="setQuery(this.textContent)">
-                        <code>SELECT COUNT(*) as total_records FROM '/home/maurice/.signalk/data/vessels/self/environment/outside/rapidWind/windSpeed/*.parquet'</code>
-                    </li>
+                    <li><div class="loading">Loading example queries...</div></li>
                 </ul>
             </div>
         </div>
@@ -352,7 +342,86 @@
 
     <script>
         let availablePaths = [];
+        let dataDirectory = '';
 
+        // Load available paths on page load
+        window.addEventListener('load', async function() {
+            await loadAvailablePaths();
+            generateExampleQueries();
+        });
+
+        async function loadAvailablePaths() {
+            try {
+                const response = await fetch('/plugins/zennora-signalk-parquet/api/paths');
+                const result = await response.json();
+                
+                if (result.success) {
+                    availablePaths = result.paths;
+                    dataDirectory = result.dataDirectory;
+                    displayAvailablePaths();
+                } else {
+                    document.getElementById('availablePaths').innerHTML = 
+                        `<div class="error">Error loading paths: ${result.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('availablePaths').innerHTML = 
+                    `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+
+        function displayAvailablePaths() {
+            const container = document.getElementById('availablePaths');
+            
+            if (availablePaths.length === 0) {
+                container.innerHTML = '<p>No Parquet data files found. Start collecting data first.</p>';
+                return;
+            }
+
+            let html = '<div class="path-list">';
+            availablePaths.forEach(pathInfo => {
+                html += `
+                    <div class="path-item">
+                        <h4>${pathInfo.path}</h4>
+                        <p>${pathInfo.fileCount} files</p>
+                        <button onclick="generateQueryForPath('${pathInfo.path}', '${pathInfo.directory}')">📋 Generate Query</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+
+        function generateQueryForPath(signalkPath, directory) {
+            const query = `SELECT * FROM '${directory}/*.parquet' ORDER BY received_timestamp DESC LIMIT 10`;
+            setQuery(query);
+        }
+
+        function generateExampleQueries() {
+            const container = document.getElementById('queryExamples');
+            
+            if (availablePaths.length === 0) {
+                container.innerHTML = '<li><em>No data paths available yet. Start collecting data first.</em></li>';
+                return;
+            }
+
+            let html = '';
+            
+            // Generate examples based on available paths
+            availablePaths.slice(0, 4).forEach(pathInfo => {
+                const examples = [
+                    `SELECT * FROM '${pathInfo.directory}/*.parquet' ORDER BY received_timestamp DESC LIMIT 10`,
+                    `SELECT COUNT(*) as total_records FROM '${pathInfo.directory}/*.parquet'`,
+                    `SELECT received_timestamp, value, source_label FROM '${pathInfo.directory}/*.parquet' WHERE value IS NOT NULL ORDER BY received_timestamp DESC LIMIT 10`
+                ];
+                
+                examples.forEach(query => {
+                    html += `<li onclick="setQuery(this.textContent)"><code>${query}</code></li>`;
+                });
+            });
+
+            container.innerHTML = html;
+        }
 
         async function executeQuery() {
             const query = document.getElementById('queryInput').value.trim();
