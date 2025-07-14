@@ -879,8 +879,17 @@ module.exports = function(app) {
       const selfContextPath = app.selfContext.replace(/\./g, '/');
       const vesselsDir = path.join(dataDir, selfContextPath);
       
+      app.debug(`🔍 Looking for paths in vessel directory: ${vesselsDir}`);
+      app.debug(`📡 Using vessel context: ${app.selfContext} → ${selfContextPath}`);
+      
+      if (!fs.existsSync(vesselsDir)) {
+        app.debug(`❌ Vessel directory does not exist: ${vesselsDir}`);
+        return paths;
+      }
+      
       function walkPaths(currentPath, relativePath = '') {
         try {
+          app.debug(`🚶 Walking path: ${currentPath} (relative: ${relativePath})`);
           const items = fs.readdirSync(currentPath);
           items.forEach(item => {
             const fullPath = path.join(currentPath, item);
@@ -893,18 +902,22 @@ module.exports = function(app) {
               const hasParquetFiles = fs.readdirSync(fullPath).some(file => file.endsWith('.parquet'));
               
               if (hasParquetFiles) {
+                const fileCount = fs.readdirSync(fullPath).filter(file => file.endsWith('.parquet')).length;
+                app.debug(`✅ Found SignalK path with data: ${newRelativePath} (${fileCount} files)`);
                 paths.push({
                   path: newRelativePath,
                   directory: fullPath,
-                  fileCount: fs.readdirSync(fullPath).filter(file => file.endsWith('.parquet')).length
+                  fileCount: fileCount
                 });
+              } else {
+                app.debug(`📁 Directory ${newRelativePath} has no parquet files`);
               }
               
               walkPaths(fullPath, newRelativePath);
             }
           });
         } catch (error) {
-          console.warn(`Cannot read directory ${currentPath}:`, error.message);
+          app.debug(`❌ Error reading directory ${currentPath}: ${error.message}`);
         }
       }
       
@@ -912,6 +925,7 @@ module.exports = function(app) {
         walkPaths(vesselsDir);
       }
       
+      app.debug(`📊 Path discovery complete: found ${paths.length} paths with data`);
       return paths;
     }
 
