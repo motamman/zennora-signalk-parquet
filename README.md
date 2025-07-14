@@ -57,7 +57,7 @@ sudo systemctl restart signalk
 
 The plugin supports the same regimen-based control as the Python version:
 
-### Command Paths
+### Command Path examples
 - `vessels.self.commands.captureWeather` - Environmental data collection
 - `vessels.self.commands.capturePassage` - Navigation and passage data
 - `vessels.self.commands.captureAnchor` - Anchoring and stationary data
@@ -89,16 +89,16 @@ The plugin supports the same regimen-based control as the Python version:
 | `source_src` | Source address |
 | `meta` | SignalK metadata as JSON |
 
-## File Structure
+## File Structure examples
 
 
 ```
 data/
-├── vessels/self/navigation/position/
+├── vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/
 │   ├── signalk_data_20250702_143022.parquet    # Timestamped files
 │   ├── signalk_data_2025-07-02_consolidated.parquet  # Daily consolidated
 │   └── processed/                              # Processed files
-└── vessels/self/environment/wind/speedApparent/
+└── vessels/urn_mrn_imo_mmsi_1233456789/environment/wind/speedApparent/
     ├── signalk_data_20250702_143022.parquet
     └── processed/
 ```
@@ -110,7 +110,7 @@ import duckdb
 conn = duckdb.connect()
 df = conn.execute("""
     SELECT path, value, received_timestamp, source_label
-    FROM '~/.signalk/data/vessels/self/environment/wind/speedApparent/signalk_data_2025-07-02_consolidated.parquet'
+    FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_1233456789/environment/wind/speedApparent/signalk_data_2025-07-02_consolidated.parquet'
     WHERE value IS NOT NULL
 """).df()
 
@@ -149,9 +149,9 @@ The plugin includes an integrated SignalK webapp for exploring and querying your
 
 Once the plugin is installed and enabled, the web interface is automatically available at:
 - **https://your-signalk-server:3443/plugins/zennora-signalk-parquet/**
-- **http://localhost:3443/plugins/zennora-signalk-parquet/** (if running locally)
+- **http://localhost:3000/plugins/zennora-signalk-parquet/** (if running locally)
 
-Replace `your-signalk-server` with your actual SignalK server hostname or IP address.
+Replace `your-signalk-server` with your actual SignalK server hostname or IP address and https and port.
 
 ### Features
 
@@ -165,22 +165,23 @@ Replace `your-signalk-server` with your actual SignalK server hostname or IP add
 ### Example Queries
 
 **Wind Speed Analysis:**
+replace your mmsi in this string: urn_mrn_imo_mmsi_1233456789
 ```sql
-SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_368396230/environment/outside/rapidWind/windSpeed/*.parquet'
+SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_1233456789/environment/outside/rapidWind/windSpeed/*.parquet'
 ORDER BY received_timestamp DESC 
 LIMIT 10;
 ```
 
 **Position Data (Single File):**
 ```sql
-SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_368396230/navigation/position/signalk_data_2025-07-03T1200.parquet'
+SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/signalk_data_2025-07-03T1200.parquet'
 LIMIT 5;
 ```
 
 **Position Data (Specific Columns to Avoid Schema Issues):**
 ```sql
 SELECT received_timestamp, signalk_timestamp, value_latitude, value_longitude, source_label
-FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_368396230/navigation/position/*.parquet'
+FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/*.parquet'
 WHERE value_latitude IS NOT NULL
 ORDER BY received_timestamp DESC 
 LIMIT 10;
@@ -188,7 +189,7 @@ LIMIT 10;
 
 **Filter by Source:**
 ```sql
-SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_368396230/navigation/position/*.parquet'
+SELECT * FROM '~/.signalk/data/vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/*.parquet'
 WHERE source_label = 'mqtt-navBasic'
 ORDER BY received_timestamp DESC 
 LIMIT 10;
@@ -219,7 +220,7 @@ If you get "TProtocolException: Invalid data" when using wildcards (`*.parquet`)
 
 **Finding Your Data Paths:**
 ```bash
-find ~/.signalk/data/vessels/self -name "*.parquet" -type f | head -10
+find ~/.signalk/data/vessels/ -name "*.parquet" -type f | head -10
 ```
 
 ### S3 Configuration Panel
@@ -241,9 +242,9 @@ Click the **🔗 Test S3 Connection** button to verify your S3 configuration. Th
 
 The **S3 Key Prefix** organizes your uploaded files in the S3 bucket with a directory structure:
 
-- **Without prefix**: `vessels/self/navigation/position/2025-07-12.parquet`
-- **With prefix "marine-data"**: `marine-data/vessels/self/navigation/position/2025-07-12.parquet`  
-- **With prefix "boat-123/"**: `boat-123/vessels/self/navigation/position/2025-07-12.parquet`
+- **Without prefix**: `vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/2025-07-12.parquet`
+- **With prefix "marine-data"**: `marine-data/vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/2025-07-12.parquet`  
+- **With prefix "boat-123/"**: `boat-123/vessels/urn_mrn_imo_mmsi_1233456789/navigation/position/2025-07-12.parquet`
 
 This allows organizing multiple vessels or data sources in the same S3 bucket.
 
