@@ -450,7 +450,8 @@ module.exports = function(app) {
       // Create proper directory structure
       let contextPath;
       if (context === 'vessels.self') {
-        contextPath = app.selfContext.replace(/\./g, '/');
+        // Clean the self context for filesystem usage (replace dots with slashes, colons with underscores)
+        contextPath = app.selfContext.replace(/\./g, '/').replace(/:/g, '_');
       } else if (context.startsWith('vessels.')) {
         // Extract vessel identifier and clean it for filesystem
         const vesselId = context.replace('vessels.', '').replace(/:/g, '_');
@@ -868,15 +869,16 @@ module.exports = function(app) {
 
     // Get the current configuration for data directory
     const getDataDir = () => {
-      // The plugin saves to ~/.signalk/data directly
-      return app.getDataDirPath();
+      // Use the user-configured output directory, fallback to SignalK default
+      return currentConfig?.outputDirectory || app.getDataDirPath();
     };
 
 
     // Helper function to get available paths from directory structure
     function getAvailablePaths(dataDir) {
       const paths = [];
-      const selfContextPath = app.selfContext.replace(/\./g, '/');
+      // Clean the self context for filesystem usage (replace dots with slashes, colons with underscores)
+      const selfContextPath = app.selfContext.replace(/\./g, '/').replace(/:/g, '_');
       const vesselsDir = path.join(dataDir, selfContextPath);
       
       app.debug(`🔍 Looking for paths in vessel directory: ${vesselsDir}`);
@@ -953,7 +955,7 @@ module.exports = function(app) {
       try {
         const dataDir = getDataDir();
         const signalkPath = req.params.path;
-        const selfContextPath = app.selfContext.replace(/\./g, '/');
+        const selfContextPath = app.selfContext.replace(/\./g, '/').replace(/:/g, '_');
         const pathDir = path.join(dataDir, selfContextPath, signalkPath.replace(/\./g, '/'));
         
         if (!fs.existsSync(pathDir)) {
@@ -1005,7 +1007,7 @@ module.exports = function(app) {
         const signalkPath = req.params.path;
         const limit = parseInt(req.query.limit) || 10;
         
-        const selfContextPath = app.selfContext.replace(/\./g, '/');
+        const selfContextPath = app.selfContext.replace(/\./g, '/').replace(/:/g, '_');
         const pathDir = path.join(dataDir, selfContextPath, signalkPath.replace(/\./g, '/'));
         
         if (!fs.existsSync(pathDir)) {
@@ -1109,7 +1111,7 @@ module.exports = function(app) {
             const quotedPath = match.slice(1, -1); // Remove quotes
             
             // If it looks like a SignalK path, convert to file path
-            const selfContextPath = app.selfContext.replace(/\./g, '/');
+            const selfContextPath = app.selfContext.replace(/\./g, '/').replace(/:/g, '_');
             if (quotedPath.includes(`/${selfContextPath}/`) || quotedPath.includes('.parquet')) {
               // It's already a file path, use as is
               return;
