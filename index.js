@@ -1,6 +1,5 @@
 const fs = require('fs-extra');
 const path = require('path');
-const yaml = require('yaml');
 const ParquetWriter = require('./parquet-writer');
 
 // AWS S3 for file upload
