@@ -450,7 +450,7 @@ module.exports = function(app) {
       // Create proper directory structure
       let contextPath;
       if (context === 'vessels.self') {
-        contextPath = 'vessels/self';
+        contextPath = app.selfContext.replace(/\./g, '/');
       } else if (context.startsWith('vessels.')) {
         // Extract vessel identifier and clean it for filesystem
         const vesselId = context.replace('vessels.', '').replace(/:/g, '_');
@@ -876,7 +876,8 @@ module.exports = function(app) {
     // Helper function to get available paths from directory structure
     function getAvailablePaths(dataDir) {
       const paths = [];
-      const vesselsDir = path.join(dataDir, 'vessels', 'self');
+      const selfContextPath = app.selfContext.replace(/\./g, '/');
+      const vesselsDir = path.join(dataDir, selfContextPath);
       
       function walkPaths(currentPath, relativePath = '') {
         try {
@@ -938,7 +939,8 @@ module.exports = function(app) {
       try {
         const dataDir = getDataDir();
         const signalkPath = req.params.path;
-        const pathDir = path.join(dataDir, 'vessels', 'self', signalkPath.replace(/\./g, '/'));
+        const selfContextPath = app.selfContext.replace(/\./g, '/');
+        const pathDir = path.join(dataDir, selfContextPath, signalkPath.replace(/\./g, '/'));
         
         if (!fs.existsSync(pathDir)) {
           return res.status(404).json({
@@ -989,7 +991,8 @@ module.exports = function(app) {
         const signalkPath = req.params.path;
         const limit = parseInt(req.query.limit) || 10;
         
-        const pathDir = path.join(dataDir, 'vessels', 'self', signalkPath.replace(/\./g, '/'));
+        const selfContextPath = app.selfContext.replace(/\./g, '/');
+        const pathDir = path.join(dataDir, selfContextPath, signalkPath.replace(/\./g, '/'));
         
         if (!fs.existsSync(pathDir)) {
           return res.status(404).json({
@@ -1092,12 +1095,13 @@ module.exports = function(app) {
             const quotedPath = match.slice(1, -1); // Remove quotes
             
             // If it looks like a SignalK path, convert to file path
-            if (quotedPath.includes('/vessels/self/') || quotedPath.includes('.parquet')) {
+            const selfContextPath = app.selfContext.replace(/\./g, '/');
+            if (quotedPath.includes(`/${selfContextPath}/`) || quotedPath.includes('.parquet')) {
               // It's already a file path, use as is
               return;
             } else if (quotedPath.includes('.') && !quotedPath.includes('/')) {
               // It's a SignalK path, convert to file path
-              const filePath = path.join(dataDir, 'vessels', 'self', quotedPath.replace(/\./g, '/'), '*.parquet');
+              const filePath = path.join(dataDir, selfContextPath, quotedPath.replace(/\./g, '/'), '*.parquet');
               processedQuery = processedQuery.replace(match, `'${filePath}'`);
             }
           });

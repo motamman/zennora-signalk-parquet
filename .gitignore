@@ -71,7 +71,6 @@ temp/
 # Development files (keep these out of git)
 DEVELOPMENT_NOTES.md
 *.draft.md
-# Development and documentation files
 SESSION_SUMMARY.md
 TODO.md
 PUBLISHING_TO_NPM_AND_ORGANIZING_GIT.md
