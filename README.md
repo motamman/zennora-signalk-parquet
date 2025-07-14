@@ -1,6 +1,6 @@
 # Zennora SignalK to Parquet Plugin
 
-A SignalK Node.js plugin that saves signalk vessel data directly to Parquet files with regimen-based control.
+A SignalK Node.js plugin that saves signalk vessel data directly to Parquet files with regimen-based control. This words with the Zennora zennora-signalk-register-commands plugin but any bool path can be used.
 
 ## Features
 
@@ -16,30 +16,26 @@ A SignalK Node.js plugin that saves signalk vessel data directly to Parquet file
 
 ## Installation
 
-1. Copy the plugin to your SignalK plugins directory:
+
+
 ```bash
-cp -r zennora-signalk-parquet ~/.signalk/node_modules/
+cd ~/.signalk/
+npm install @motamman/zennora-signalk-parquet
 ```
 
-2. **Install dependencies** (REQUIRED):
-```bash
-cd ~/.signalk/node_modules/zennora-signalk-parquet
-npm install
-```
-This installs:
-- `@dsnp/parquetjs` - for native Parquet file writing with DuckDB compatibility
-- `@duckdb/node-api` - for webapp SQL query interface (REQUIRED for web interface)
-- `@aws-sdk/client-s3` - for optional S3 cloud backup functionality
-- `yaml` - for configuration parsing  
-- `fs-extra` - for enhanced file operations
-- `glob` - for file pattern matching
-
-3. Restart SignalK server:
+Then restart SignalK server:
 ```bash
 sudo systemctl restart signalk
 ```
 
-**Note**: Dependencies are required for Parquet format and webapp functionality. If `@duckdb/node-api` installation fails, the webapp query interface will not work (but data collection will still function). If Parquet dependencies fail, the plugin will fall back to JSON format with a warning. Failed Parquet writes are saved to a separate `/failed/` directory to maintain DuckDB schema consistency.
+**Dependencies**: The plugin automatically installs all required dependencies:
+- `@dsnp/parquetjs` - for native Parquet file writing with DuckDB compatibility
+- `@duckdb/node-api` - for webapp SQL query interface (REQUIRED for web interface)
+- `@aws-sdk/client-s3` - for optional S3 cloud backup functionality
+- `fs-extra` - for enhanced file operations
+- `glob` - for file pattern matching
+
+**Note**: If `@duckdb/node-api` installation fails, the webapp query interface will not work (but data collection will still function). If Parquet dependencies fail, the plugin will fall back to JSON format with a warning. Failed Parquet writes are saved to a separate `/failed/` directory to maintain DuckDB schema consistency.
 
 ## Configuration
 
