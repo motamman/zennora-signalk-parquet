@@ -2,16 +2,39 @@
 .git
 .gitignore
 
-# Development files
+# Development and documentation files
 SESSION_SUMMARY.md
 TODO.md
+PUBLISHING_TO_NPM_AND_ORGANIZING_GIT.md
+NPM_PACKAGE_CREATION.md
 *.log
 .DS_Store
 
-# Node modules
-node_modules
+# Node modules and package files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tgz
 
-# Python files and directories
+# Backup files
+*.backup
+index.js.backup
+
+# Test and coverage files
+test/
+tests/
+coverage/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python files (if any exist)
 *.py
 *.pyc
 *.pyo
@@ -45,13 +68,6 @@ env.bak/
 venv.bak/
 .venv/
 
-# Python IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -72,7 +88,3 @@ Pipfile
 Pipfile.lock
 poetry.lock
 pyproject.toml
-
-# Python backup files
-*.backup
-index.js.backup
