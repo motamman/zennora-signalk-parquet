@@ -334,6 +334,58 @@
             <p>Query and explore your marine data stored in Parquet format</p>
         </div>
 
+        <!-- Path Configuration Section -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleCollapse('pathConfig')">
+                <h2>⚙️ Path Configuration</h2>
+                <span class="collapse-icon" id="pathConfig-icon">▼</span>
+            </div>
+            <div class="collapsible-content expanded" id="pathConfig-content">
+                <p>Manage which SignalK paths to collect data from:</p>
+                <button onclick="loadPathConfigurations()">🔄 Refresh Paths</button>
+                <button onclick="showAddPathForm()">➕ Add New Path</button>
+                
+                <div id="pathConfigContainer">
+                    <div class="loading">Loading path configurations...</div>
+                </div>
+                
+                <!-- Add Path Form (hidden by default) -->
+                <div id="addPathForm" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+                    <h4>Add New Path Configuration</h4>
+                    <div class="form-group">
+                        <label for="pathName">Path Name:</label>
+                        <input type="text" id="pathName" placeholder="e.g., Navigation Position">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathSignalK">SignalK Path:</label>
+                        <input type="text" id="pathSignalK" placeholder="e.g., navigation.position">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathDescription">Description:</label>
+                        <input type="text" id="pathDescription" placeholder="e.g., GPS position data">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathEnabled">Always Enabled:</label>
+                        <input type="checkbox" id="pathEnabled">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathRegimen">Regimen Control:</label>
+                        <input type="text" id="pathRegimen" placeholder="e.g., captureWeather, capturePassage">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathSource">Source Filter (optional):</label>
+                        <input type="text" id="pathSource" placeholder="e.g., mqtt-weatherflow-udp">
+                    </div>
+                    <div class="form-group">
+                        <label for="pathContext">Context:</label>
+                        <input type="text" id="pathContext" placeholder="e.g., vessels.self" value="vessels.self">
+                    </div>
+                    <button onclick="addPathConfiguration()">✅ Add Path</button>
+                    <button class="btn-secondary" onclick="hideAddPathForm()">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- S3 Configuration Section -->
         <div class="section">
             <h2>☁️ S3 Configuration</h2>
@@ -406,6 +458,7 @@
         // Load available paths on page load
         window.addEventListener('load', async function() {
             await loadAvailablePaths();
+            await loadPathConfigurations();
             generateExampleQueries();
         });
 
@@ -627,6 +680,142 @@
                 button.disabled = false;
                 button.textContent = '🔗 Test S3 Connection';
             }
+        }
+
+        // Path Configuration Management Functions
+        async function loadPathConfigurations() {
+            try {
+                const response = await fetch('/plugins/zennora-signalk-parquet/api/config/paths');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPathConfigurations(result.paths);
+                } else {
+                    document.getElementById('pathConfigContainer').innerHTML = 
+                        `<div class="error">Error loading path configurations: ${result.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('pathConfigContainer').innerHTML = 
+                    `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+
+        function displayPathConfigurations(paths) {
+            const container = document.getElementById('pathConfigContainer');
+            
+            if (!paths || paths.length === 0) {
+                container.innerHTML = '<p>No path configurations found.</p>';
+                return;
+            }
+
+            let html = '<div class="table-container"><table><thead><tr>';
+            html += '<th>Name</th><th>Path</th><th>Description</th><th>Enabled</th><th>Regimen</th><th>Source</th><th>Context</th><th>Actions</th>';
+            html += '</tr></thead><tbody>';
+
+            paths.forEach((path, index) => {
+                html += `<tr>
+                    <td>${path.name || ''}</td>
+                    <td><code>${path.path || ''}</code></td>
+                    <td>${path.description || ''}</td>
+                    <td>${path.enabled ? '✅' : '❌'}</td>
+                    <td>${path.regimen || ''}</td>
+                    <td>${path.source || ''}</td>
+                    <td>${path.context || 'vessels.self'}</td>
+                    <td>
+                        <button onclick="editPathConfiguration(${index})" style="padding: 5px 10px; font-size: 12px;">✏️ Edit</button>
+                        <button onclick="removePathConfiguration(${index})" style="padding: 5px 10px; font-size: 12px; background: #dc3545;">🗑️ Remove</button>
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function showAddPathForm() {
+            document.getElementById('addPathForm').style.display = 'block';
+        }
+
+        function hideAddPathForm() {
+            document.getElementById('addPathForm').style.display = 'none';
+            clearAddPathForm();
+        }
+
+        function clearAddPathForm() {
+            document.getElementById('pathName').value = '';
+            document.getElementById('pathSignalK').value = '';
+            document.getElementById('pathDescription').value = '';
+            document.getElementById('pathEnabled').checked = false;
+            document.getElementById('pathRegimen').value = '';
+            document.getElementById('pathSource').value = '';
+            document.getElementById('pathContext').value = 'vessels.self';
+        }
+
+        async function addPathConfiguration() {
+            const pathConfig = {
+                name: document.getElementById('pathName').value.trim(),
+                path: document.getElementById('pathSignalK').value.trim(),
+                description: document.getElementById('pathDescription').value.trim(),
+                enabled: document.getElementById('pathEnabled').checked,
+                regimen: document.getElementById('pathRegimen').value.trim(),
+                source: document.getElementById('pathSource').value.trim(),
+                context: document.getElementById('pathContext').value.trim() || 'vessels.self'
+            };
+
+            if (!pathConfig.name || !pathConfig.path) {
+                alert('Path name and SignalK path are required');
+                return;
+            }
+
+            try {
+                const response = await fetch('/plugins/zennora-signalk-parquet/api/config/paths', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(pathConfig)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    hideAddPathForm();
+                    await loadPathConfigurations();
+                    alert('Path configuration added successfully');
+                } else {
+                    alert(`Error adding path configuration: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        async function removePathConfiguration(index) {
+            if (!confirm('Are you sure you want to remove this path configuration?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/plugins/zennora-signalk-parquet/api/config/paths/${index}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadPathConfigurations();
+                    alert('Path configuration removed successfully');
+                } else {
+                    alert(`Error removing path configuration: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        async function editPathConfiguration(index) {
+            // For now, just show an alert - this could be expanded to inline editing
+            alert('Edit functionality not yet implemented. Please remove and add a new configuration.');
         }
     </script>
 </body>

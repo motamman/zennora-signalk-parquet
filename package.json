@@ -6,6 +6,9 @@
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-webapp",
+    "signalk-category-utility",
+    "signalk-category-ais",
+    "signalk-category-cloud",
     "parquet",
     "data-collection",
     "marine-data"

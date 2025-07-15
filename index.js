@@ -250,6 +250,21 @@ module.exports = function(app) {
 
   // Update data path subscriptions based on active regimens
   function updateDataSubscriptions(config) {
+    // First, unsubscribe from all existing subscriptions
+    unsubscribes.forEach(unsubscribe => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    });
+    unsubscribes = [];
+    subscribedPaths.clear();
+
+    app.debug('Cleared all existing subscriptions');
+
+    // Re-subscribe to command paths
+    subscribeToCommandPaths(config);
+
+    // Now subscribe to data paths
     const dataPaths = config.paths.filter(pathConfig => 
       pathConfig && pathConfig.path && !pathConfig.path.startsWith('commands.')
     );
@@ -1209,6 +1224,134 @@ module.exports = function(app) {
         res.status(500).json({
           success: false,
           error: error.message || 'S3 connection failed'
+        });
+      }
+    });
+
+    // Get current path configurations
+    router.get('/api/config/paths', (_, res) => {
+      try {
+        const paths = currentConfig?.paths || getDefaultPaths();
+        res.json({
+          success: true,
+          paths: paths
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    // Add new path configuration
+    router.post('/api/config/paths', (req, res) => {
+      try {
+        const newPath = req.body;
+        
+        // Validate required fields
+        if (!newPath.name || !newPath.path) {
+          return res.status(400).json({
+            success: false,
+            error: 'Name and path are required'
+          });
+        }
+
+        // Add to current configuration
+        if (!currentConfig.paths) {
+          currentConfig.paths = getDefaultPaths();
+        }
+        
+        currentConfig.paths.push(newPath);
+        
+        // Update subscriptions with new configuration
+        updateDataSubscriptions(currentConfig);
+        
+        res.json({
+          success: true,
+          message: 'Path configuration added successfully',
+          path: newPath
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    // Update existing path configuration
+    router.put('/api/config/paths/:index', (req, res) => {
+      try {
+        const index = parseInt(req.params.index);
+        const updatedPath = req.body;
+        
+        if (!currentConfig.paths || index < 0 || index >= currentConfig.paths.length) {
+          return res.status(404).json({
+            success: false,
+            error: 'Path configuration not found'
+          });
+        }
+
+        // Validate required fields
+        if (!updatedPath.name || !updatedPath.path) {
+          return res.status(400).json({
+            success: false,
+            error: 'Name and path are required'
+          });
+        }
+
+        // Update the path configuration
+        currentConfig.paths[index] = updatedPath;
+        
+        // Update subscriptions with new configuration
+        updateDataSubscriptions(currentConfig);
+        
+        res.json({
+          success: true,
+          message: 'Path configuration updated successfully',
+          path: updatedPath
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    // Remove path configuration
+    router.delete('/api/config/paths/:index', (req, res) => {
+      try {
+        const index = parseInt(req.params.index);
+        
+        if (!currentConfig.paths || index < 0 || index >= currentConfig.paths.length) {
+          return res.status(404).json({
+            success: false,
+            error: 'Path configuration not found'
+          });
+        }
+
+        // Get the path being removed for response
+        const removedPath = currentConfig.paths[index];
+        
+        // Remove from configuration
+        currentConfig.paths.splice(index, 1);
+        
+        // Update subscriptions with new configuration
+        updateDataSubscriptions(currentConfig);
+        
+        app.debug(`Removed path configuration: ${removedPath.name} (${removedPath.path})`);
+        
+        res.json({
+          success: true,
+          message: 'Path configuration removed successfully',
+          removedPath: removedPath
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
         });
       }
     });
