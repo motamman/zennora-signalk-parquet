@@ -344,7 +344,6 @@
                 <p>Manage which SignalK paths to collect data from:</p>
                 <button onclick="loadPathConfigurations()">🔄 Refresh Paths</button>
                 <button onclick="showAddPathForm()">➕ Add New Path</button>
-                <button onclick="createDefaultPaths()">🏗️ Create Default Paths</button>
                 
                 <div id="pathConfigContainer">
                     <div class="loading">Loading path configurations...</div>
@@ -709,7 +708,6 @@
                     <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 5px; margin: 20px 0;">
                         <h3 style="color: #666; margin-bottom: 10px;">No Path Configurations Found</h3>
                         <p style="color: #666; margin-bottom: 20px;">You need to configure SignalK paths to start collecting data.</p>
-                        <button onclick="createDefaultPaths()" style="margin-right: 10px;">🏗️ Create Default Paths</button>
                         <button onclick="showAddPathForm()">➕ Add Your First Path</button>
                     </div>
                 `;
@@ -721,7 +719,7 @@
             html += '</tr></thead><tbody>';
 
             paths.forEach((path, index) => {
-                html += `<tr>
+                html += `<tr data-index="${index}">
                     <td>${path.name || ''}</td>
                     <td><code>${path.path || ''}</code></td>
                     <td>${path.description || ''}</td>
@@ -821,36 +819,90 @@
             }
         }
 
+        let editingIndex = -1;
+
         async function editPathConfiguration(index) {
-            // For now, just show an alert - this could be expanded to inline editing
-            alert('Edit functionality not yet implemented. Please remove and add a new configuration.');
+            // Cancel any existing edit
+            if (editingIndex !== -1) {
+                cancelEdit();
+            }
+            
+            editingIndex = index;
+            
+            // Get the current path configuration
+            const response = await fetch('/plugins/zennora-signalk-parquet/api/config/paths');
+            const result = await response.json();
+            
+            if (!result.success || !result.paths[index]) {
+                alert('Error loading path configuration');
+                return;
+            }
+            
+            const path = result.paths[index];
+            
+            // Replace the row with edit form
+            const row = document.querySelector(`tr[data-index="${index}"]`);
+            if (row) {
+                row.innerHTML = `
+                    <td><input type="text" id="editName${index}" value="${path.name || ''}" style="width: 100%;"></td>
+                    <td><input type="text" id="editPath${index}" value="${path.path || ''}" style="width: 100%;"></td>
+                    <td><input type="text" id="editDescription${index}" value="${path.description || ''}" style="width: 100%;"></td>
+                    <td><input type="checkbox" id="editEnabled${index}" ${path.enabled ? 'checked' : ''}></td>
+                    <td><input type="text" id="editRegimen${index}" value="${path.regimen || ''}" style="width: 100%;"></td>
+                    <td><input type="text" id="editSource${index}" value="${path.source || ''}" style="width: 100%;"></td>
+                    <td><input type="text" id="editContext${index}" value="${path.context || 'vessels.self'}" style="width: 100%;"></td>
+                    <td>
+                        <button onclick="saveEdit(${index})" style="padding: 5px 10px; font-size: 12px; background: #28a745;">💾 Save</button>
+                        <button onclick="cancelEdit()" style="padding: 5px 10px; font-size: 12px; background: #6c757d;">❌ Cancel</button>
+                    </td>
+                `;
+            }
         }
 
-        async function createDefaultPaths() {
-            if (!confirm('This will replace all existing path configurations with default ones. Are you sure?')) {
+        async function saveEdit(index) {
+            const updatedPath = {
+                name: document.getElementById(`editName${index}`).value.trim(),
+                path: document.getElementById(`editPath${index}`).value.trim(),
+                description: document.getElementById(`editDescription${index}`).value.trim(),
+                enabled: document.getElementById(`editEnabled${index}`).checked,
+                regimen: document.getElementById(`editRegimen${index}`).value.trim(),
+                source: document.getElementById(`editSource${index}`).value.trim(),
+                context: document.getElementById(`editContext${index}`).value.trim() || 'vessels.self'
+            };
+
+            if (!updatedPath.name || !updatedPath.path) {
+                alert('Path name and SignalK path are required');
                 return;
             }
 
             try {
-                const response = await fetch('/plugins/zennora-signalk-parquet/api/config/paths/defaults', {
-                    method: 'POST',
+                const response = await fetch(`/plugins/zennora-signalk-parquet/api/config/paths/${index}`, {
+                    method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    body: JSON.stringify(updatedPath)
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
+                    editingIndex = -1;
                     await loadPathConfigurations();
-                    alert('Default path configurations created successfully');
+                    alert('Path configuration updated successfully');
                 } else {
-                    alert(`Error creating default paths: ${result.error}`);
+                    alert(`Error updating path configuration: ${result.error}`);
                 }
             } catch (error) {
                 alert(`Network error: ${error.message}`);
             }
         }
+
+        function cancelEdit() {
+            editingIndex = -1;
+            loadPathConfigurations();
+        }
+
     </script>
 </body>
 </html>
