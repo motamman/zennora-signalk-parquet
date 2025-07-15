@@ -54,7 +54,7 @@ module.exports = function(app) {
       retentionDays: options?.retentionDays || 7,
       fileFormat: options?.fileFormat || 'parquet', // 'json', 'csv', or 'parquet'
       vesselMMSI: vesselMMSI,
-      paths: loadPathConfigurations(),
+      paths: options?.paths || [],
       s3Upload: options?.s3Upload || { enabled: false }
     };
 
@@ -661,37 +661,6 @@ module.exports = function(app) {
 
 
 
-  // Load path configurations from persistent storage
-  function loadPathConfigurations() {
-    try {
-      const configPath = path.join(app.getDataDirPath(), 'zennora-signalk-parquet-paths.json');
-      if (fs.existsSync(configPath)) {
-        const configData = fs.readFileSync(configPath, 'utf8');
-        const paths = JSON.parse(configData);
-        app.debug(`Loaded ${paths.length} path configurations from ${configPath}`);
-        return paths;
-      } else {
-        app.debug('No path configuration file found, starting with empty configuration');
-        return [];
-      }
-    } catch (error) {
-      app.debug('Error loading path configurations:', error);
-      return [];
-    }
-  }
-
-  // Save path configurations to persistent storage
-  function savePathConfigurations(paths) {
-    try {
-      const configPath = path.join(app.getDataDirPath(), 'zennora-signalk-parquet-paths.json');
-      fs.writeFileSync(configPath, JSON.stringify(paths, null, 2));
-      app.debug(`Saved ${paths.length} path configurations to ${configPath}`);
-      return true;
-    } catch (error) {
-      app.debug('Error saving path configurations:', error);
-      return false;
-    }
-  }
 
   plugin.schema = {
     type: 'object',
@@ -1159,7 +1128,7 @@ module.exports = function(app) {
     // Get current path configurations
     router.get('/api/config/paths', (_, res) => {
       try {
-        const paths = loadPathConfigurations();
+        const paths = currentConfig?.paths || [];
         res.json({
           success: true,
           paths: paths
@@ -1186,13 +1155,19 @@ module.exports = function(app) {
           });
         }
 
-        // Load current paths, add new one, and save
-        const paths = loadPathConfigurations();
-        paths.push(newPath);
+        // Add to current configuration
+        currentConfig.paths.push(newPath);
         
-        if (savePathConfigurations(paths)) {
-          // Update current config and subscriptions
-          currentConfig.paths = paths;
+        // Save to plugin configuration
+        app.savePluginOptions(currentConfig, (err) => {
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to save configuration: ' + err.message
+            });
+          }
+          
+          // Update subscriptions
           updateDataSubscriptions(currentConfig);
           
           res.json({
@@ -1200,12 +1175,7 @@ module.exports = function(app) {
             message: 'Path configuration added successfully',
             path: newPath
           });
-        } else {
-          res.status(500).json({
-            success: false,
-            error: 'Failed to save path configuration'
-          });
-        }
+        });
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -1220,9 +1190,7 @@ module.exports = function(app) {
         const index = parseInt(req.params.index);
         const updatedPath = req.body;
         
-        const paths = loadPathConfigurations();
-        
-        if (index < 0 || index >= paths.length) {
+        if (index < 0 || index >= currentConfig.paths.length) {
           return res.status(404).json({
             success: false,
             error: 'Path configuration not found'
@@ -1238,11 +1206,18 @@ module.exports = function(app) {
         }
 
         // Update the path configuration
-        paths[index] = updatedPath;
+        currentConfig.paths[index] = updatedPath;
         
-        if (savePathConfigurations(paths)) {
-          // Update current config and subscriptions
-          currentConfig.paths = paths;
+        // Save to plugin configuration
+        app.savePluginOptions(currentConfig, (err) => {
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to save configuration: ' + err.message
+            });
+          }
+          
+          // Update subscriptions
           updateDataSubscriptions(currentConfig);
           
           res.json({
@@ -1250,12 +1225,7 @@ module.exports = function(app) {
             message: 'Path configuration updated successfully',
             path: updatedPath
           });
-        } else {
-          res.status(500).json({
-            success: false,
-            error: 'Failed to save path configuration'
-          });
-        }
+        });
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -1269,9 +1239,7 @@ module.exports = function(app) {
       try {
         const index = parseInt(req.params.index);
         
-        const paths = loadPathConfigurations();
-        
-        if (index < 0 || index >= paths.length) {
+        if (index < 0 || index >= currentConfig.paths.length) {
           return res.status(404).json({
             success: false,
             error: 'Path configuration not found'
@@ -1279,14 +1247,21 @@ module.exports = function(app) {
         }
 
         // Get the path being removed for response
-        const removedPath = paths[index];
+        const removedPath = currentConfig.paths[index];
         
         // Remove from configuration
-        paths.splice(index, 1);
+        currentConfig.paths.splice(index, 1);
         
-        if (savePathConfigurations(paths)) {
-          // Update current config and subscriptions
-          currentConfig.paths = paths;
+        // Save to plugin configuration
+        app.savePluginOptions(currentConfig, (err) => {
+          if (err) {
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to save configuration: ' + err.message
+            });
+          }
+          
+          // Update subscriptions
           updateDataSubscriptions(currentConfig);
           
           app.debug(`Removed path configuration: ${removedPath.name} (${removedPath.path})`);
@@ -1296,12 +1271,7 @@ module.exports = function(app) {
             message: 'Path configuration removed successfully',
             removedPath: removedPath
           });
-        } else {
-          res.status(500).json({
-            success: false,
-            error: 'Failed to save path configuration'
-          });
-        }
+        });
       } catch (error) {
         res.status(500).json({
           success: false,
