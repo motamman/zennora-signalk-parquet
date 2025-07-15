@@ -344,6 +344,7 @@
                 <p>Manage which SignalK paths to collect data from:</p>
                 <button onclick="loadPathConfigurations()">🔄 Refresh Paths</button>
                 <button onclick="showAddPathForm()">➕ Add New Path</button>
+                <button onclick="createDefaultPaths()">🏗️ Create Default Paths</button>
                 
                 <div id="pathConfigContainer">
                     <div class="loading">Loading path configurations...</div>
@@ -816,6 +817,32 @@
         async function editPathConfiguration(index) {
             // For now, just show an alert - this could be expanded to inline editing
             alert('Edit functionality not yet implemented. Please remove and add a new configuration.');
+        }
+
+        async function createDefaultPaths() {
+            if (!confirm('This will replace all existing path configurations with default ones. Are you sure?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/plugins/zennora-signalk-parquet/api/config/paths/defaults', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadPathConfigurations();
+                    alert('Default path configurations created successfully');
+                } else {
+                    alert(`Error creating default paths: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
         }
     </script>
 </body>

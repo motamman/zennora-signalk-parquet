@@ -54,7 +54,7 @@ module.exports = function(app) {
       retentionDays: options?.retentionDays || 7,
       fileFormat: options?.fileFormat || 'parquet', // 'json', 'csv', or 'parquet'
       vesselMMSI: vesselMMSI,
-      paths: options?.paths || getDefaultPaths(),
+      paths: loadPathConfigurations(),
       s3Upload: options?.s3Upload || { enabled: false }
     };
 
@@ -662,62 +662,36 @@ module.exports = function(app) {
 
 
 
-  function getDefaultPaths() {
-    // Return default SignalK paths for initial testing
-    return [
-      {
-        name: "Capture Weather Command",
-        path: "commands.captureWeather",
-        description: "Boolean command to enable weather data capture",
-        enabled: true
-      },
-      {
-        name: "Capture Passage Command", 
-        path: "commands.capturePassage",
-        description: "Boolean command to enable passage data capture",
-        enabled: true
-      },
-      {
-        name: "Navigation Position",
-        path: "navigation.position",
-        description: "GPS position data with latitude, longitude, altitude",
-        enabled: false,
-        regimen: "capturePassage, captureWeather",
-        context: "vessels.self"
-      },
-      {
-        name: "AIS Vessel Positions",
-        path: "navigation.position", 
-        description: "AIS position data from nearby vessels",
-        enabled: false,
-        regimen: "capturePassage",
-        context: "vessels.*"
-      },
-      {
-        name: "Wind Speed Apparent",
-        path: "environment.wind.speedApparent", 
-        description: "Apparent wind speed",
-        enabled: false,
-        regimen: "captureWeather",
-        source: ""
-      },
-      {
-        name: "Wind Direction Apparent",
-        path: "environment.wind.angleApparent",
-        description: "Apparent wind direction", 
-        enabled: false,
-        regimen: "captureWeather",
-        source: ""
-      },
-      {
-        name: "Design Beam",
-        path: "design.beam",
-        description: "Vessel beam measurement",
-        enabled: false,
-        regimen: "",
-        source: ""
+  // Load path configurations from persistent storage
+  function loadPathConfigurations() {
+    try {
+      const configPath = path.join(app.getDataDirPath(), 'zennora-signalk-parquet-paths.json');
+      if (fs.existsSync(configPath)) {
+        const configData = fs.readFileSync(configPath, 'utf8');
+        const paths = JSON.parse(configData);
+        app.debug(`Loaded ${paths.length} path configurations from ${configPath}`);
+        return paths;
+      } else {
+        app.debug('No path configuration file found, starting with empty configuration');
+        return [];
       }
-    ];
+    } catch (error) {
+      app.debug('Error loading path configurations:', error);
+      return [];
+    }
+  }
+
+  // Save path configurations to persistent storage
+  function savePathConfigurations(paths) {
+    try {
+      const configPath = path.join(app.getDataDirPath(), 'zennora-signalk-parquet-paths.json');
+      fs.writeFileSync(configPath, JSON.stringify(paths, null, 2));
+      app.debug(`Saved ${paths.length} path configurations to ${configPath}`);
+      return true;
+    } catch (error) {
+      app.debug('Error saving path configurations:', error);
+      return false;
+    }
   }
 
   plugin.schema = {
@@ -1231,11 +1205,86 @@ module.exports = function(app) {
     // Get current path configurations
     router.get('/api/config/paths', (_, res) => {
       try {
-        const paths = currentConfig?.paths || getDefaultPaths();
+        const paths = loadPathConfigurations();
         res.json({
           success: true,
           paths: paths
         });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: error.message
+        });
+      }
+    });
+
+    // Create default path configurations
+    router.post('/api/config/paths/defaults', (_, res) => {
+      try {
+        const defaultPaths = [
+          {
+            name: "Capture Weather Command",
+            path: "commands.captureWeather",
+            description: "Boolean command to enable weather data capture",
+            enabled: true,
+            regimen: "",
+            source: "",
+            context: "vessels.self"
+          },
+          {
+            name: "Capture Passage Command", 
+            path: "commands.capturePassage",
+            description: "Boolean command to enable passage data capture",
+            enabled: true,
+            regimen: "",
+            source: "",
+            context: "vessels.self"
+          },
+          {
+            name: "Navigation Position",
+            path: "navigation.position",
+            description: "GPS position data with latitude, longitude, altitude",
+            enabled: false,
+            regimen: "capturePassage, captureWeather",
+            source: "",
+            context: "vessels.self"
+          },
+          {
+            name: "Wind Speed Apparent",
+            path: "environment.wind.speedApparent", 
+            description: "Apparent wind speed",
+            enabled: false,
+            regimen: "captureWeather",
+            source: "",
+            context: "vessels.self"
+          },
+          {
+            name: "Wind Direction Apparent",
+            path: "environment.wind.angleApparent",
+            description: "Apparent wind direction", 
+            enabled: false,
+            regimen: "captureWeather",
+            source: "",
+            context: "vessels.self"
+          }
+        ];
+
+        if (savePathConfigurations(defaultPaths)) {
+          // Update current config and subscriptions
+          currentConfig.paths = defaultPaths;
+          updateDataSubscriptions(currentConfig);
+          
+          res.json({
+            success: true,
+            message: 'Default path configurations created successfully',
+            paths: defaultPaths
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: 'Failed to save default path configurations'
+          });
+        }
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -1257,21 +1306,26 @@ module.exports = function(app) {
           });
         }
 
-        // Add to current configuration
-        if (!currentConfig.paths) {
-          currentConfig.paths = getDefaultPaths();
+        // Load current paths, add new one, and save
+        const paths = loadPathConfigurations();
+        paths.push(newPath);
+        
+        if (savePathConfigurations(paths)) {
+          // Update current config and subscriptions
+          currentConfig.paths = paths;
+          updateDataSubscriptions(currentConfig);
+          
+          res.json({
+            success: true,
+            message: 'Path configuration added successfully',
+            path: newPath
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: 'Failed to save path configuration'
+          });
         }
-        
-        currentConfig.paths.push(newPath);
-        
-        // Update subscriptions with new configuration
-        updateDataSubscriptions(currentConfig);
-        
-        res.json({
-          success: true,
-          message: 'Path configuration added successfully',
-          path: newPath
-        });
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -1286,7 +1340,9 @@ module.exports = function(app) {
         const index = parseInt(req.params.index);
         const updatedPath = req.body;
         
-        if (!currentConfig.paths || index < 0 || index >= currentConfig.paths.length) {
+        const paths = loadPathConfigurations();
+        
+        if (index < 0 || index >= paths.length) {
           return res.status(404).json({
             success: false,
             error: 'Path configuration not found'
@@ -1302,16 +1358,24 @@ module.exports = function(app) {
         }
 
         // Update the path configuration
-        currentConfig.paths[index] = updatedPath;
+        paths[index] = updatedPath;
         
-        // Update subscriptions with new configuration
-        updateDataSubscriptions(currentConfig);
-        
-        res.json({
-          success: true,
-          message: 'Path configuration updated successfully',
-          path: updatedPath
-        });
+        if (savePathConfigurations(paths)) {
+          // Update current config and subscriptions
+          currentConfig.paths = paths;
+          updateDataSubscriptions(currentConfig);
+          
+          res.json({
+            success: true,
+            message: 'Path configuration updated successfully',
+            path: updatedPath
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: 'Failed to save path configuration'
+          });
+        }
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -1325,7 +1389,9 @@ module.exports = function(app) {
       try {
         const index = parseInt(req.params.index);
         
-        if (!currentConfig.paths || index < 0 || index >= currentConfig.paths.length) {
+        const paths = loadPathConfigurations();
+        
+        if (index < 0 || index >= paths.length) {
           return res.status(404).json({
             success: false,
             error: 'Path configuration not found'
@@ -1333,21 +1399,29 @@ module.exports = function(app) {
         }
 
         // Get the path being removed for response
-        const removedPath = currentConfig.paths[index];
+        const removedPath = paths[index];
         
         // Remove from configuration
-        currentConfig.paths.splice(index, 1);
+        paths.splice(index, 1);
         
-        // Update subscriptions with new configuration
-        updateDataSubscriptions(currentConfig);
-        
-        app.debug(`Removed path configuration: ${removedPath.name} (${removedPath.path})`);
-        
-        res.json({
-          success: true,
-          message: 'Path configuration removed successfully',
-          removedPath: removedPath
-        });
+        if (savePathConfigurations(paths)) {
+          // Update current config and subscriptions
+          currentConfig.paths = paths;
+          updateDataSubscriptions(currentConfig);
+          
+          app.debug(`Removed path configuration: ${removedPath.name} (${removedPath.path})`);
+          
+          res.json({
+            success: true,
+            message: 'Path configuration removed successfully',
+            removedPath: removedPath
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: 'Failed to save path configuration'
+          });
+        }
       } catch (error) {
         res.status(500).json({
           success: false,
