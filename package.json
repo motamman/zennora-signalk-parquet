@@ -24,7 +24,7 @@
     "appSupport": "webapp",
     "compatibility": ">=2.13.0",
     "displayName": "Zennora Parquet Query Interface",
-    "appIcon": "zennora.jpg"
+    "appIcon": "parquet.png"
   },
   "dependencies": {
     "@dsnp/parquetjs": "^1.8.7",
