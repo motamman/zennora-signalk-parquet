@@ -705,7 +705,14 @@
             const container = document.getElementById('pathConfigContainer');
             
             if (!paths || paths.length === 0) {
-                container.innerHTML = '<p>No path configurations found.</p>';
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 5px; margin: 20px 0;">
+                        <h3 style="color: #666; margin-bottom: 10px;">No Path Configurations Found</h3>
+                        <p style="color: #666; margin-bottom: 20px;">You need to configure SignalK paths to start collecting data.</p>
+                        <button onclick="createDefaultPaths()" style="margin-right: 10px;">🏗️ Create Default Paths</button>
+                        <button onclick="showAddPathForm()">➕ Add Your First Path</button>
+                    </div>
+                `;
                 return;
             }
 
