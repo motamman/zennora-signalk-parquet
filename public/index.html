@@ -313,6 +313,71 @@
             max-height: 2000px;
         }
 
+        /* Tab Navigation Styles */
+        .tab-navigation {
+            display: flex;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            background: #f8f9fa;
+            border: none;
+            padding: 15px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            border-radius: 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            margin: 0;
+        }
+
+        .tab-button:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        .tab-button:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        .tab-button:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .tab-panel .section {
+            margin-bottom: 0;
+            box-shadow: none;
+            border-radius: 0 0 10px 10px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -325,6 +390,22 @@
             .stats {
                 flex-direction: column;
                 gap: 10px;
+            }
+
+            .tab-navigation {
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                flex: 1;
+                min-width: 120px;
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+
+            .tab-button:first-child,
+            .tab-button:last-child {
+                border-radius: 0;
             }
         }
     </style>
@@ -342,13 +423,21 @@
             <p>Export, query, and explore your Signalk data archived as Parquet files</p>
         </div>
 
-        <!-- Path Configuration Section -->
-        <div class="section">
-            <div class="collapsible-header" onclick="toggleCollapse('pathConfig')">
-                <h2>⚙️ Path Configuration</h2>
-                <span class="collapse-icon" id="pathConfig-icon">▼</span>
-            </div>
-            <div class="collapsible-content expanded" id="pathConfig-content">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" onclick="showTab('pathConfig')">⚙️ Path Configuration</button>
+            <button class="tab-button" onclick="showTab('s3Config')">☁️ S3 Configuration</button>
+            <button class="tab-button" onclick="showTab('dataPaths')">📁 Available Data Paths</button>
+            <button class="tab-button" onclick="showTab('customQuery')">🔍 Custom Query</button>
+            <button class="tab-button" onclick="showTab('queryResults')">📊 Query Results</button>
+        </div>
+
+        <!-- Tab Content Panels -->
+        <div class="tab-content">
+            <!-- Path Configuration Tab -->
+            <div id="pathConfig" class="tab-panel active">
+                <div class="section">
+                    <h2>⚙️ Path Configuration</h2>
                 <p>Manage which SignalK paths to collect data from:</p>
                 <button onclick="loadPathConfigurations()">🔄 Refresh Paths</button>
                 <button onclick="showAddPathForm()">➕ Add New Path</button>
@@ -382,15 +471,16 @@
                     </div>
                 </div>
                 
-                <div id="pathConfigContainer">
-                    <div class="loading">Loading path configurations...</div>
+                    <div id="pathConfigContainer">
+                        <div class="loading">Loading path configurations...</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- S3 Configuration Section -->
-        <div class="section">
-            <h2>☁️ S3 Configuration</h2>
+            <!-- S3 Configuration Tab -->
+            <div id="s3Config" class="tab-panel">
+                <div class="section">
+                    <h2>☁️ S3 Configuration</h2>
             <p>Test your S3 connection and understand the Key Prefix functionality:</p>
             <button onclick="testS3Connection()">🔗 Test S3 Connection</button>
             <div id="s3TestResult" style="margin-top: 10px;"></div>
@@ -403,31 +493,26 @@
                     <li><strong>With prefix "marine-data":</strong> Files upload as <code>marine-data/vessels/self/navigation/position/2025-07-12.parquet</code></li>
                     <li><strong>With prefix "boat-123/":</strong> Files upload as <code>boat-123/vessels/self/navigation/position/2025-07-12.parquet</code></li>
                 </ul>
-                <p>This allows organizing multiple vessels or data sources in the same S3 bucket.</p>
-            </div>
-        </div>
-
-        <!-- Data Path Information -->
-        <div class="section">
-            <div class="collapsible-header" onclick="toggleCollapse('dataPaths')">
-                <h2>📁 Available Data Paths</h2>
-                <span class="collapse-icon" id="dataPaths-icon">▼</span>
-            </div>
-            <div class="collapsible-content expanded" id="dataPaths-content">
-                <p>Available SignalK data paths with Parquet files:</p>
-                <div id="availablePaths">
-                    <div class="loading">Loading available paths...</div>
+                    <p>This allows organizing multiple vessels or data sources in the same S3 bucket.</p>
+                </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Query Section -->
-        <div class="section">
-            <div class="collapsible-header" onclick="toggleCollapse('customQuery')">
-                <h2>🔍 Custom Query</h2>
-                <span class="collapse-icon" id="customQuery-icon">▼</span>
+            <!-- Data Paths Tab -->
+            <div id="dataPaths" class="tab-panel">
+                <div class="section">
+                    <h2>📁 Available Data Paths</h2>
+                <p>Available SignalK data paths with Parquet files:</p>
+                    <div id="availablePaths">
+                        <div class="loading">Loading available paths...</div>
+                    </div>
+                </div>
             </div>
-            <div class="collapsible-content expanded" id="customQuery-content">
+
+            <!-- Custom Query Tab -->
+            <div id="customQuery" class="tab-panel">
+                <div class="section">
+                    <h2>🔍 Custom Query</h2>
                 <div class="form-group">
                     <label for="queryInput">DuckDB SQL Query:</label>
                     <textarea id="queryInput" placeholder="SELECT * FROM 'path/to/file.parquet' LIMIT 10"></textarea>
@@ -438,17 +523,20 @@
                 <div class="query-examples">
                     <h4>📝 Example Queries (click to use):</h4>
                     <ul id="queryExamples">
-                        <li><div class="loading">Loading example queries...</div></li>
-                    </ul>
+                            <li><div class="loading">Loading example queries...</div></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Results Section -->
-        <div class="section">
-            <h2>📊 Query Results</h2>
-            <div id="resultsContainer">
-                <p>Run a query to see results here...</p>
+            <!-- Query Results Tab -->
+            <div id="queryResults" class="tab-panel">
+                <div class="section">
+                    <h2>📊 Query Results</h2>
+                    <div id="resultsContainer">
+                        <p>Run a query to see results here...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -546,6 +634,9 @@
 
             const resultsContainer = document.getElementById('resultsContainer');
             resultsContainer.innerHTML = '<div class="loading">Executing query...</div>';
+            
+            // Switch to results tab
+            showTab('queryResults');
 
             try {
                 const response = await fetch('/plugins/zennora-signalk-parquet/api/query', {
@@ -627,20 +718,29 @@
             document.getElementById('resultsContainer').innerHTML = '<p>Run a query to see results here...</p>';
         }
 
-        function toggleCollapse(sectionId) {
-            const content = document.getElementById(sectionId + '-content');
-            const icon = document.getElementById(sectionId + '-icon');
+        function showTab(tabId) {
+            // Hide all tab panels
+            const tabPanels = document.querySelectorAll('.tab-panel');
+            tabPanels.forEach(panel => {
+                panel.classList.remove('active');
+            });
             
-            if (content.classList.contains('collapsed')) {
-                content.classList.remove('collapsed');
-                content.classList.add('expanded');
-                icon.classList.remove('collapsed');
-                icon.textContent = '▼';
-            } else {
-                content.classList.remove('expanded');
-                content.classList.add('collapsed');
-                icon.classList.add('collapsed');
-                icon.textContent = '▼';
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show the selected tab panel
+            const selectedPanel = document.getElementById(tabId);
+            if (selectedPanel) {
+                selectedPanel.classList.add('active');
+            }
+            
+            // Add active class to the clicked tab button
+            const clickedButton = document.querySelector(`[onclick="showTab('${tabId}')"]`);
+            if (clickedButton) {
+                clickedButton.classList.add('active');
             }
         }
 
