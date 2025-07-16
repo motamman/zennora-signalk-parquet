@@ -38,7 +38,7 @@ module.exports = function(app) {
   plugin.description = 'Save SignalK marine data directly to Parquet files with regimen-based control';
 
   plugin.start = function(options) {
-    app.debug('Starting Zennora SignalK to Parquet plugin');
+    app.debug('Starting...');
 
     // Get vessel MMSI from SignalK
     const vesselMMSI = app.getSelfPath('mmsi') || app.getSelfPath('name') || 'unknown_vessel';
@@ -59,7 +59,7 @@ module.exports = function(app) {
     };
 
     // Initialize ParquetWriter
-    parquetWriter = new ParquetWriter({ format: currentConfig.fileFormat });
+    parquetWriter = new ParquetWriter({ format: currentConfig.fileFormat, app: app });
 
     // Initialize S3 client if enabled
     if (currentConfig.s3Upload.enabled && S3Client) {
@@ -118,11 +118,11 @@ module.exports = function(app) {
     }, msUntilMidnightUTC);
 
 
-    app.debug('Zennora SignalK to Parquet plugin started');
+    app.debug('Started');
   };
 
   plugin.stop = function() {
-    app.debug('Stopping Zennora SignalK to Parquet plugin');
+    app.debug('Stopping...');
     
     // Clear intervals
     if (saveInterval) {

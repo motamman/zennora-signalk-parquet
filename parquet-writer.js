@@ -6,7 +6,6 @@ let parquet;
 try {
   parquet = require('@dsnp/parquetjs');
 } catch (error) {
-  console.warn('ParquetJS not available, will use JSON fallback');
   parquet = null;
 }
 
@@ -16,6 +15,7 @@ try {
 class ParquetWriter {
   constructor(options = {}) {
     this.format = options.format || 'json'; // 'json', 'csv', or 'parquet'
+    this.app = options.app; // SignalK app instance for logging
   }
 
   async writeRecords(filepath, records) {
@@ -81,19 +81,19 @@ class ParquetWriter {
   async writeParquet(filepath, records) {
     try {
       if (records.length === 0) {
-        console.warn('No records to write to Parquet file');
+        this.app && this.app.debug('No records to write to Parquet file');
         return filepath;
       }
 
       // Check if ParquetJS is available
       if (!parquet) {
-        console.warn('ParquetJS not available, falling back to JSON');
+        this.app && this.app.debug('ParquetJS not available, falling back to JSON');
         return this.writeJSON(filepath, records);
       }
 
-      console.log(`Attempting to write ${records.length} records to Parquet`);
-      console.log('Sample record keys:', Object.keys(records[0]));
-      console.log('Sample record:', JSON.stringify(records[0], null, 2));
+      this.app && this.app.debug(`Attempting to write ${records.length} records to Parquet`);
+      this.app && this.app.debug('Sample record keys:', Object.keys(records[0]));
+      this.app && this.app.debug('Sample record:', JSON.stringify(records[0], null, 2));
 
       // Define schema based on SignalK data structure
       const schemaFields = {
@@ -124,11 +124,11 @@ class ParquetWriter {
       });
 
       const schema = new parquet.ParquetSchema(schemaFields);
-      console.log(`Creating Parquet schema with ${Object.keys(schemaFields).length} fields:`, Object.keys(schemaFields));
+      this.app && this.app.debug(`Creating Parquet schema with ${Object.keys(schemaFields).length} fields:`, Object.keys(schemaFields));
       
       // Create Parquet writer
       const writer = await parquet.ParquetWriter.openFile(schema, filepath);
-      console.log('Parquet writer created successfully');
+      this.app && this.app.debug('Parquet writer created successfully');
       
       // Write records to Parquet file
       for (let i = 0; i < records.length; i++) {
@@ -147,28 +147,28 @@ class ParquetWriter {
           }
         });
         
-        console.log(`Writing record ${i + 1}/${records.length}`);
+        this.app && this.app.debug(`Writing record ${i + 1}/${records.length}`);
         await writer.appendRow(cleanRecord);
       }
       
       // Close the writer
-      console.log('Closing Parquet writer...');
+      this.app && this.app.debug('Closing Parquet writer...');
       await writer.close();
       
-      console.log(`✅ Successfully wrote ${records.length} records to Parquet: ${filepath}`);
+      this.app && this.app.debug(`✅ Successfully wrote ${records.length} records to Parquet: ${filepath}`);
       return filepath;
       
     } catch (error) {
-      console.error('❌ Parquet writing failed:', error.message);
-      console.error('Error stack:', error.stack);
+      this.app && this.app.debug('❌ Parquet writing failed:', error.message);
+      this.app && this.app.debug('Error stack:', error.stack);
       
       // Save to failed directory to maintain schema consistency
       const failedDir = path.join(path.dirname(filepath), 'failed');
       await fs.ensureDir(failedDir);
       const failedPath = path.join(failedDir, path.basename(filepath).replace('.parquet', '_FAILED.json'));
       
-      console.error(`💾 Saving failed Parquet data as JSON to: ${failedPath}`);
-      console.error('⚠️  This data will need manual conversion to maintain DuckDB schema consistency');
+      this.app && this.app.debug(`💾 Saving failed Parquet data as JSON to: ${failedPath}`);
+      this.app && this.app.debug('⚠️  This data will need manual conversion to maintain DuckDB schema consistency');
       
       await this.writeJSON(failedPath, records);
       
@@ -267,12 +267,12 @@ class ParquetWriter {
                 }
                 await reader.close();
               } catch (parquetError) {
-                console.warn(`Failed to read Parquet file ${sourceFile}:`, parquetError.message);
+                this.app && this.app.debug(`Failed to read Parquet file ${sourceFile}:`, parquetError.message);
               }
             }
           } else if (ext === '.csv') {
             // Could implement CSV reading if needed
-            console.warn(`CSV merging not implemented for ${sourceFile}`);
+            this.app && this.app.debug(`CSV merging not implemented for ${sourceFile}`);
           }
         }
       }
@@ -334,7 +334,7 @@ class ParquetWriter {
       // Consolidate each topic's files
       for (const entry of consolidatedFiles) {
         const recordCount = await this.mergeFiles(entry.sources, entry.target);
-        console.log(`Consolidated ${entry.sources.length} files into ${entry.target} (${recordCount} records)`);
+        this.app && this.app.debug(`Consolidated ${entry.sources.length} files into ${entry.target} (${recordCount} records)`);
         
         // Move source files to processed folder
         const processedDir = path.join(path.dirname(entry.target), 'processed');
