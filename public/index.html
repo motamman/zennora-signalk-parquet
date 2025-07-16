@@ -353,12 +353,8 @@
                 <button onclick="loadPathConfigurations()">🔄 Refresh Paths</button>
                 <button onclick="showAddPathForm()">➕ Add New Path</button>
                 
-                <div id="pathConfigContainer">
-                    <div class="loading">Loading path configurations...</div>
-                </div>
-                
                 <!-- Add Path Form (hidden by default) -->
-                <div id="addPathForm" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+                <div id="addPathForm" style="display: none; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 5px; min-height: 400px; overflow: visible;">
                     <h4>Add New Path Configuration</h4>
                     <div class="form-group">
                         <label for="pathSignalK">SignalK Path:</label>
@@ -384,6 +380,10 @@
                         <button onclick="addPathConfiguration()">✅ Add Path</button>
                         <button class="btn-secondary" onclick="hideAddPathForm()">❌ Cancel</button>
                     </div>
+                </div>
+                
+                <div id="pathConfigContainer">
+                    <div class="loading">Loading path configurations...</div>
                 </div>
             </div>
         </div>
