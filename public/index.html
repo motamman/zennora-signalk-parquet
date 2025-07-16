@@ -131,14 +131,24 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 600px;
+            min-width: 800px;
         }
 
         th, td {
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            word-wrap: break-word;
         }
+        
+        th:nth-child(1), td:nth-child(1) { min-width: 120px; } /* Name */
+        th:nth-child(2), td:nth-child(2) { min-width: 150px; } /* Path */
+        th:nth-child(3), td:nth-child(3) { min-width: 100px; } /* Description */
+        th:nth-child(4), td:nth-child(4) { width: 60px; } /* Enabled */
+        th:nth-child(5), td:nth-child(5) { min-width: 100px; } /* Regimen */
+        th:nth-child(6), td:nth-child(6) { min-width: 100px; } /* Source */
+        th:nth-child(7), td:nth-child(7) { width: 100px; } /* Context */
+        th:nth-child(8), td:nth-child(8) { width: 150px; } /* Actions */
 
         th {
             background-color: #f8f9fa;
