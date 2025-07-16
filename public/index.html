@@ -361,16 +361,8 @@
                 <div id="addPathForm" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
                     <h4>Add New Path Configuration</h4>
                     <div class="form-group">
-                        <label for="pathName">Path Name:</label>
-                        <input type="text" id="pathName" placeholder="e.g., Navigation Position">
-                    </div>
-                    <div class="form-group">
                         <label for="pathSignalK">SignalK Path:</label>
                         <input type="text" id="pathSignalK" placeholder="e.g., navigation.position">
-                    </div>
-                    <div class="form-group">
-                        <label for="pathDescription">Description:</label>
-                        <input type="text" id="pathDescription" placeholder="e.g., GPS position data">
                     </div>
                     <div class="form-group">
                         <label for="pathEnabled">Always Enabled:</label>
@@ -754,9 +746,7 @@
         }
 
         function clearAddPathForm() {
-            document.getElementById('pathName').value = '';
             document.getElementById('pathSignalK').value = '';
-            document.getElementById('pathDescription').value = '';
             document.getElementById('pathEnabled').checked = false;
             document.getElementById('pathRegimen').value = '';
             document.getElementById('pathSource').value = '';
@@ -765,17 +755,15 @@
 
         async function addPathConfiguration() {
             const pathConfig = {
-                name: document.getElementById('pathName').value.trim(),
                 path: document.getElementById('pathSignalK').value.trim(),
-                description: document.getElementById('pathDescription').value.trim(),
                 enabled: document.getElementById('pathEnabled').checked,
                 regimen: document.getElementById('pathRegimen').value.trim(),
                 source: document.getElementById('pathSource').value.trim(),
                 context: document.getElementById('pathContext').value.trim() || 'vessels.self'
             };
 
-            if (!pathConfig.name || !pathConfig.path) {
-                alert('Path name and SignalK path are required');
+            if (!pathConfig.path) {
+                alert('SignalK path is required');
                 return;
             }
 
@@ -850,9 +838,7 @@
             const row = document.querySelector(`tr[data-index="${index}"]`);
             if (row) {
                 row.innerHTML = `
-                    <td><input type="text" id="editName${index}" value="${path.name || ''}" style="width: 100%;"></td>
                     <td><input type="text" id="editPath${index}" value="${path.path || ''}" style="width: 100%;"></td>
-                    <td><input type="text" id="editDescription${index}" value="${path.description || ''}" style="width: 100%;"></td>
                     <td><input type="checkbox" id="editEnabled${index}" ${path.enabled ? 'checked' : ''}></td>
                     <td><input type="text" id="editRegimen${index}" value="${path.regimen || ''}" style="width: 100%;"></td>
                     <td><input type="text" id="editSource${index}" value="${path.source || ''}" style="width: 100%;"></td>
@@ -867,17 +853,15 @@
 
         async function saveEdit(index) {
             const updatedPath = {
-                name: document.getElementById(`editName${index}`).value.trim(),
                 path: document.getElementById(`editPath${index}`).value.trim(),
-                description: document.getElementById(`editDescription${index}`).value.trim(),
                 enabled: document.getElementById(`editEnabled${index}`).checked,
                 regimen: document.getElementById(`editRegimen${index}`).value.trim(),
                 source: document.getElementById(`editSource${index}`).value.trim(),
                 context: document.getElementById(`editContext${index}`).value.trim() || 'vessels.self'
             };
 
-            if (!updatedPath.name || !updatedPath.path) {
-                alert('Path name and SignalK path are required');
+            if (!updatedPath.path) {
+                alert('SignalK path is required');
                 return;
             }
 
