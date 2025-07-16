@@ -1148,10 +1148,10 @@ module.exports = function(app) {
         const newPath = req.body;
         
         // Validate required fields
-        if (!newPath.name || !newPath.path) {
+        if (!newPath.path) {
           return res.status(400).json({
             success: false,
-            error: 'Name and path are required'
+            error: 'Path is required'
           });
         }
 
@@ -1198,10 +1198,10 @@ module.exports = function(app) {
         }
 
         // Validate required fields
-        if (!updatedPath.name || !updatedPath.path) {
+        if (!updatedPath.path) {
           return res.status(400).json({
             success: false,
-            error: 'Name and path are required'
+            error: 'Path is required'
           });
         }
 
