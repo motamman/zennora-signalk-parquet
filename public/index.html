@@ -429,7 +429,6 @@
             <button class="tab-button" onclick="showTab('s3Config')">☁️ S3 Configuration</button>
             <button class="tab-button" onclick="showTab('dataPaths')">📁 Available Data Paths</button>
             <button class="tab-button" onclick="showTab('customQuery')">🔍 Custom Query</button>
-            <button class="tab-button" onclick="showTab('queryResults')">📊 Query Results</button>
         </div>
 
         <!-- Tab Content Panels -->
@@ -506,6 +505,21 @@
                     <div id="availablePaths">
                         <div class="loading">Loading available paths...</div>
                     </div>
+                    
+                    <!-- Query Section for Data Paths -->
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <h3>Query Data</h3>
+                        <div class="form-group">
+                            <label for="dataPathsQueryInput">DuckDB SQL Query:</label>
+                            <textarea id="dataPathsQueryInput" placeholder="SELECT * FROM 'path/to/file.parquet' LIMIT 10"></textarea>
+                        </div>
+                        <button onclick="executeDataPathsQuery()">▶️ Execute Query</button>
+                        <button class="btn-secondary" onclick="clearDataPathsQuery()">🗑️ Clear</button>
+                        
+                        <div id="dataPathsResultsContainer" class="results">
+                            <p>Run a query to see results here...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -526,14 +540,9 @@
                             <li><div class="loading">Loading example queries...</div></li>
                         </ul>
                     </div>
-                </div>
-            </div>
-
-            <!-- Query Results Tab -->
-            <div id="queryResults" class="tab-panel">
-                <div class="section">
-                    <h2>📊 Query Results</h2>
-                    <div id="resultsContainer">
+                    
+                    <!-- Query Results Section -->
+                    <div id="customQueryResultsContainer" class="results">
                         <p>Run a query to see results here...</p>
                     </div>
                 </div>
@@ -596,7 +605,7 @@
 
         function generateQueryForPath(signalkPath, directory) {
             const query = `SELECT * FROM '${directory}/*.parquet' ORDER BY received_timestamp DESC LIMIT 10`;
-            setQuery(query);
+            setDataPathsQuery(query);
         }
 
         function generateExampleQueries() {
@@ -632,11 +641,8 @@
                 return;
             }
 
-            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsContainer = document.getElementById('customQueryResultsContainer');
             resultsContainer.innerHTML = '<div class="loading">Executing query...</div>';
-            
-            // Switch to results tab
-            showTab('queryResults');
 
             try {
                 const response = await fetch('/plugins/zennora-signalk-parquet/api/query', {
@@ -650,7 +656,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    displayResults(result);
+                    displayResults(result, 'customQueryResultsContainer');
                 } else {
                     resultsContainer.innerHTML = `<div class="error">Query error: ${result.error}</div>`;
                 }
@@ -659,8 +665,39 @@
             }
         }
 
-        function displayResults(result) {
-            const container = document.getElementById('resultsContainer');
+        async function executeDataPathsQuery() {
+            const query = document.getElementById('dataPathsQueryInput').value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('dataPathsResultsContainer');
+            resultsContainer.innerHTML = '<div class="loading">Executing query...</div>';
+
+            try {
+                const response = await fetch('/plugins/zennora-signalk-parquet/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayResults(result, 'dataPathsResultsContainer');
+                } else {
+                    resultsContainer.innerHTML = `<div class="error">Query error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="error">Network error: ${error.message}</div>`;
+            }
+        }
+
+        function displayResults(result, containerId = 'resultsContainer') {
+            const container = document.getElementById(containerId);
             
             if (!result.data || result.data.length === 0) {
                 container.innerHTML = '<p>No data returned from query.</p>';
@@ -713,9 +750,18 @@
             document.getElementById('queryInput').value = query;
         }
 
+        function setDataPathsQuery(query) {
+            document.getElementById('dataPathsQueryInput').value = query;
+        }
+
         function clearQuery() {
             document.getElementById('queryInput').value = '';
-            document.getElementById('resultsContainer').innerHTML = '<p>Run a query to see results here...</p>';
+            document.getElementById('customQueryResultsContainer').innerHTML = '<p>Run a query to see results here...</p>';
+        }
+
+        function clearDataPathsQuery() {
+            document.getElementById('dataPathsQueryInput').value = '';
+            document.getElementById('dataPathsResultsContainer').innerHTML = '<p>Run a query to see results here...</p>';
         }
 
         function showTab(tabId) {
