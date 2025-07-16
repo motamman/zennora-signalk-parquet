@@ -426,9 +426,9 @@
         <!-- Tab Navigation -->
         <div class="tab-navigation">
             <button class="tab-button active" onclick="showTab('pathConfig')">⚙️ Path Configuration</button>
-            <button class="tab-button" onclick="showTab('s3Config')">☁️ S3 Configuration</button>
             <button class="tab-button" onclick="showTab('dataPaths')">📁 Available Data Paths</button>
             <button class="tab-button" onclick="showTab('customQuery')">🔍 Custom Query</button>
+            <button class="tab-button" onclick="showTab('s3Config')">☁️ Cloud Status</button>
         </div>
 
         <!-- Tab Content Panels -->
@@ -479,7 +479,7 @@
             <!-- S3 Configuration Tab -->
             <div id="s3Config" class="tab-panel">
                 <div class="section">
-                    <h2>☁️ S3 Configuration</h2>
+                    <h2>☁️ Cloud Status</h2>
             <p>Test your S3 connection and understand the Key Prefix functionality:</p>
             <button onclick="testS3Connection()">🔗 Test S3 Connection</button>
             <div id="s3TestResult" style="margin-top: 10px;"></div>
