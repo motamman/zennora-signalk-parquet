@@ -131,7 +131,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 800px;
+            min-width: 600px;
         }
 
         th, td {
@@ -141,14 +141,12 @@
             word-wrap: break-word;
         }
         
-        th:nth-child(1), td:nth-child(1) { min-width: 120px; } /* Name */
-        th:nth-child(2), td:nth-child(2) { min-width: 150px; } /* Path */
-        th:nth-child(3), td:nth-child(3) { min-width: 100px; } /* Description */
-        th:nth-child(4), td:nth-child(4) { width: 60px; } /* Enabled */
-        th:nth-child(5), td:nth-child(5) { min-width: 100px; } /* Regimen */
-        th:nth-child(6), td:nth-child(6) { min-width: 100px; } /* Source */
-        th:nth-child(7), td:nth-child(7) { width: 100px; } /* Context */
-        th:nth-child(8), td:nth-child(8) { width: 150px; } /* Actions */
+        th:nth-child(1), td:nth-child(1) { min-width: 200px; } /* Path */
+        th:nth-child(2), td:nth-child(2) { width: 70px; } /* Enabled */
+        th:nth-child(3), td:nth-child(3) { min-width: 120px; } /* Regimen */
+        th:nth-child(4), td:nth-child(4) { min-width: 100px; } /* Source */
+        th:nth-child(5), td:nth-child(5) { width: 100px; } /* Context */
+        th:nth-child(6), td:nth-child(6) { width: 140px; } /* Actions */
 
         th {
             background-color: #f8f9fa;
@@ -725,14 +723,12 @@
             }
 
             let html = '<div class="table-container"><table><thead><tr>';
-            html += '<th>Name</th><th>Path</th><th>Description</th><th>Enabled</th><th>Regimen</th><th>Source</th><th>Context</th><th>Actions</th>';
+            html += '<th>Path</th><th>Enabled</th><th>Regimen</th><th>Source</th><th>Context</th><th>Actions</th>';
             html += '</tr></thead><tbody>';
 
             paths.forEach((path, index) => {
                 html += `<tr data-index="${index}">
-                    <td>${path.name || ''}</td>
                     <td><code>${path.path || ''}</code></td>
-                    <td>${path.description || ''}</td>
                     <td>${path.enabled ? '✅' : '❌'}</td>
                     <td>${path.regimen || ''}</td>
                     <td>${path.source || ''}</td>
